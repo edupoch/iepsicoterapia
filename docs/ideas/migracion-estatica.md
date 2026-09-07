@@ -67,6 +67,18 @@ Estos dos cambios se hicieron a mano sobre el HTML ya descargado, no en el WordP
 1. **Formulario de contacto eliminado** — en `contacto/index.html` se quitó por completo la `<section>` con `data-id="4009fa5f"` (el widget de formulario de Elementor/Contact Form 7, que no puede procesar envíos sin backend). Solo afecta a esa página. Queda el enlace `<link>` a `contact-form-7/includes/css/styles.css` en el `<head>`, ya sin uso — inofensivo (una hoja de estilos que no se aplica a nada), no se ha quitado.
 2. **Buscador móvil eliminado en las 18 páginas** — el `<form class="mobile-searchform">` (búsqueda interna de WordPress, con acción `?s=...`) no tiene backend que la resuelva en estático, así que se eliminó de todas las páginas. Nota: en el DOM ya renderizado por el navegador, el plugin del menú móvil ("sidr") clona este formulario y le añade el prefijo de clase `sidr-class-` — por eso puede aparecer como `form.sidr-class-mobile-searchform` al inspeccionar con las DevTools, aunque en el HTML fuente la clase es solo `mobile-searchform`. Al quitar el formulario original ya no hay nada que clonar.
 
+## Bug del slider de portada (Smart Slider 3) — encontrado y corregido
+
+**Síntoma:** en la home, el slider mostraba solo 3 de las 7 diapositivas (Madrid, Londres, Viena) y luego volvía a empezar, en vez de continuar con las 4 restantes (París, Puerta de Brandenburgo, Lisboa, Roma).
+
+**Causa:** Smart Slider 3 guarda el fondo de esas 4 diapositivas como una variable CSS (`--n2bgimage:URL("...")`) dentro de un `<style>` inline, y su JS lee ese valor **como texto plano** para cargar la imagen — no lo resuelve como una URL normal del navegador. En producción ese texto es `//iepsicoterapia.org/wp-content/uploads/...` (con dominio), y el JS lo carga bien. `wget --convert-links` lo convirtió a una ruta relativa (`wp-content/uploads/...`, sin dominio) igual que hace con los enlaces normales — pero el JS del plugin, al no tratarlo como una URL real, la resuelve mal (contra la carpeta del propio plugin, no contra la raíz del sitio), la petición da 404, y el slider se queda "atascado" sin esas 4 diapositivas.
+
+**Cómo se detectó:** no era visible comparando el HTML en bruto (es idéntico al de producción salvo esa ruta). Hubo que abrir la página en un Chromium headless con el protocolo DevTools, dejar correr el autoplay en tiempo real y mirar tanto capturas de pantalla como los errores de consola — ahí aparecieron los 404 apuntando a `wp-content/plugins/smart-slider-3/.../dist/wp-content/uploads/...`.
+
+**Arreglo aplicado:** en `index.html` (es la única página con este slider), las 6 reglas `--n2bgimage:URL("wp-content/...")` se cambiaron a `--n2bgimage:URL("//iepsicoterapia.org/wp-content/...")` — igual que en producción. Funciona tanto en el dominio final (mismo origen) como en cualquier despliegue de prueba (GitHub Pages incluido), porque carga la imagen directamente desde `iepsicoterapia.org`.
+
+**Si se vuelve a exportar con `wget`:** buscar `--n2bgimage:URL("wp-content` en `index.html` y volver a añadir `//iepsicoterapia.org` delante de `wp-content` en cada una de las 6 apariciones.
+
 ## Pendientes antes de poder desplegar
 - Quitar el formulario de contacto del HTML descargado (paso 3).
 - Decidir qué hacer con `/foro-profesional-de-iep` (arreglar el enlace o quitarlo del menú).
