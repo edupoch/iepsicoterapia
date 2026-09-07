@@ -1,0 +1,12 @@
+				@font-face {
+					font-family: 'avenir-light';
+					src: url('180704105623avenir-light.woff') format('woff');
+					font-display: auto;
+				}
+
+				.avenir-light{font-family: 'avenir-light' !important;}
+
+						body, h1, h2, h3, h4, h5, h6, p, blockquote, li, a{
+					font-family: 'avenir-light' !important;
+				}
+		
