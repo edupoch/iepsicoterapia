@@ -30,7 +30,7 @@ La diferenciación frente a seguir con WordPress no es "más barato" o "más rá
 
 1. ✅ **Auditar URLs actuales** — hecho. 18 URLs de contenido + home identificadas vía API REST de WP (el `wp-sitemap.xml` está roto). Detalle en `docs/ideas/audit-urls.md`. De paso se encontró un enlace roto en producción (`/foro-profesional-de-iep` → 404) — **decisión pospuesta por el usuario**, se arregla más adelante.
 2. ✅ **Exportar con `wget --mirror --convert-links --page-requisites`** — hecho. 12 MB en `static-export/iepsicoterapia.org/`. Se completaron a mano 2 páginas que el crawl no descubrió por no estar enlazadas (`/politica-de-cookies/`, `/jornada-inaugural/`), y se limpiaron 15 ficheros `?p=NN` (shortlinks de WP sin valor).
-3. ⏸️ **Editar la página de contacto** (quitar el formulario, dejar `mailto:`/`tel:`) — **pendiente, lo hace el usuario más adelante**, no en esta sesión.
+3. ✅ **Editar la página de contacto** (quitar el formulario) — hecho, ver detalle en "Cambios de contenido aplicados tras el export" más abajo. Ya existe un `mailto:masterpsicoterapiauah@gmail.com` en la página (fuera de la sección eliminada); no se ha encontrado ningún `tel:` — pendiente decidir si se añade un teléfono de contacto visible ahora que no queda formulario.
 4. ✅ **Validar en local** (`python -m http.server`) — hecho, con una corrección importante encontrada al revisar a ojo (ver abajo). Tras corregirla: las 18 páginas + home devuelven 200, 0 enlaces internos rotos (15 rutas únicas comprobadas), 0 recursos locales rotos, favicon y Google Fonts externos correctos.
 
    **Bug encontrado y corregido:** el menú principal de WordPress usa "shortlinks" (`/?p=111`) en vez de las URLs bonitas (`/contacto/`) para casi todos sus enlaces — algo que ya pasaba en el WordPress en vivo, pero que WP disimula redirigiendo automáticamente `?p=111` → `/contacto/`. Un servidor estático no hace esa redirección. Al exportar con `wget`, esos shortlinks se guardaron como ficheros con un `?` literal en el nombre (p. ej. `index.html?p=111.html`); en la limpieza del paso 2 se borraron pensando que eran duplicados sin valor, lo que rompió el menú en las 16 páginas que lo incluyen. Corregido reescribiendo esos 14 enlaces a su ruta bonita en formato absoluto (`/contacto/` en vez de relativo), usando el mapeo id→slug de la API REST:
@@ -59,6 +59,13 @@ La diferenciación frente a seguir con WordPress no es "más barato" o "más rá
 7. 🔒 **Vigilar Google Search Console** — depende del paso 6, mismo bloqueo.
 
 **Paquete listo para cuando se decida el despliegue:** `iepsicoterapia-static-<fecha>.zip` en la raíz del proyecto, con el contenido validado de `static-export/iepsicoterapia.org/`.
+
+## Cambios de contenido aplicados tras el export (para repetir si se re-exporta)
+
+Estos dos cambios se hicieron a mano sobre el HTML ya descargado, no en el WordPress en vivo. **Si algún día se vuelve a exportar con `wget`, hay que repetirlos:**
+
+1. **Formulario de contacto eliminado** — en `contacto/index.html` se quitó por completo la `<section>` con `data-id="4009fa5f"` (el widget de formulario de Elementor/Contact Form 7, que no puede procesar envíos sin backend). Solo afecta a esa página. Queda el enlace `<link>` a `contact-form-7/includes/css/styles.css` en el `<head>`, ya sin uso — inofensivo (una hoja de estilos que no se aplica a nada), no se ha quitado.
+2. **Buscador móvil eliminado en las 18 páginas** — el `<form class="mobile-searchform">` (búsqueda interna de WordPress, con acción `?s=...`) no tiene backend que la resuelva en estático, así que se eliminó de todas las páginas. Nota: en el DOM ya renderizado por el navegador, el plugin del menú móvil ("sidr") clona este formulario y le añade el prefijo de clase `sidr-class-` — por eso puede aparecer como `form.sidr-class-mobile-searchform` al inspeccionar con las DevTools, aunque en el HTML fuente la clase es solo `mobile-searchform`. Al quitar el formulario original ya no hay nada que clonar.
 
 ## Pendientes antes de poder desplegar
 - Quitar el formulario de contacto del HTML descargado (paso 3).
